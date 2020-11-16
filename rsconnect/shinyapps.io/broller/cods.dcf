@@ -1,0 +1,10 @@
+name: cods
+title:
+username:
+account: broller
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3238931
+bundleId: 3864674
+url: https://broller.shinyapps.io/cods/
+when: 1605488590.84417
