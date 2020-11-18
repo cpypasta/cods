@@ -27,3 +27,10 @@ get_pearson_names <- function(cod_measures, cods, years) {
     select(from, to)
   unique(c(sig_pearson$from, sig_pearson$to))
 }
+
+xts_to_tibble <- function(data) {
+  as.data.frame(data) %>% 
+    rownames_to_column("date") %>%
+    mutate(date = as.Date(date)) %>%
+    as_tibble()
+}
