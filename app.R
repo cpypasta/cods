@@ -218,7 +218,7 @@ server <- function(input, output, session) {
         
         cod_plot <- ggplot(data = data, aes(x = week_end, y = deaths, fill = cause)) + 
             geom_bar(position = "fill", stat = "identity") +
-            scale_color_manual(values = selected_palette) +
+            scale_fill_manual(values = selected_palette) +
             xlim(min_date, max_date) +
             theme(legend.position = "none", axis.title.x = element_blank()) +
             ylab("Weekly Deaths Percent")
