@@ -24,7 +24,8 @@ cod_statecauses <- readRDS('data/statecausesfullpop.rds')
 cod_statecauses <- cod_statecauses %>% filter(upstate != 'Puerto Rico')
 
 cod_causes <- levels(cod_measures_long$measure)
-non_covid_causes <- cod_causes[!(cod_causes %in% c("covid", "covid_multiple"))]
+covid_causes <- c("covid", "covid_multiple")
+non_covid_causes <- cod_causes[!(cod_causes %in% covid_causes)]
 create_palette <- colorRampPalette(brewer.pal(n = 8, name = "Dark2"))
 cod_palette <- create_palette(length(cod_causes))
 
@@ -40,115 +41,154 @@ covid_map_data <- cod_statecauses %>%
     select(-subregion)
 
 ui <- fluidPage(
-    titlePanel("Causes of Death"),
-    p("Motivation: COVID-19 deaths in the United States have surpassed 256,000, and the coronavirus is now the third leading cause of death in this country, after heart disease and cancer. Before the pandemic, the U.S. already had a high overall mortality rate, and the gap has widened in the last few decades.In this analysis, we put the pandemic's toll into perspective by comparing where COVID-19 falls as a leading cause of death in the U.S. and how it has affected the number of deaths in other 12 causes. Causes of death analysis attempt to understand the burden of mortality that are directly or indirectly attributed to COVID-19."), 
-    p("The CDC National Center for Health Statistics (NCHS) collects weekly counts of deaths by state and of select causes that are categorized by underlying cause of death listed in the standardized health care grouping of ICD-10 codes. From 2014 - to current period, there were 12 main listed causes, including leading USA killers such as diseases of heart, diabetes, and chronic lower respiratory diseases. With the onset of COVID-19, two more causes were added: COVID-19 Multiple Cause of Death and COVID-19 Underlying Cause of Death."),
-    p("Our project seeks to find if COVID-19 had any affect on the number of deaths in the other 12 causes. We combined \"Weekly Counts of Deaths by State and Select Causes, 2014-2018\" and \"Weekly Counts of Deaths by State and Select Causes, 2019-2020\" datasets into one tidy dataset to represent provisional counts of deaths by the week the deaths occurred, by state of occurrence, and by select underlying causes of death from 2014-2020. The dataset also includes weekly provisional counts of death for COVID-19, coded to ICD-10 code U07.1 as an underlying or multiple cause of death."),
+    titlePanel("U.S. COVID-19 Causes of Death Analysis"),
+    img(src="covid.jpg", align = "left"),
+    p("COVID-19 deaths in the United States have surpassed 256,000, and the coronavirus is now the third leading cause of 
+      death in this country, after heart disease and cancer. Before the pandemic, the U.S. already had a high overall 
+      mortality rate, and the gap has widened in the last few decades. In this analysis, we put the pandemic's toll into 
+      perspective by comparing where COVID-19 falls as a leading cause of death (COD) in the U.S., and how it has affected the 
+      number of deaths in the other 12 causes. Causes of death analysis attempts to understand the burden of mortality that 
+      are directly or indirectly attributed to COVID-19."), 
+    p("The CDC National Center for Health Statistics (NCHS) collects weekly counts of deaths by state and of select causes 
+      that are categorized by underlying cause of death listed in the standardized health care grouping of ICD-10 codes. 
+      From 2014 to the current period, there are 12 main listed causes, including leading U.S. killers such as diseases of 
+      the heart, diabetes, and lower respiratory. With the onset of COVID-19, two more causes were added: COVID-19 Multiple 
+      Cause of Death and COVID-19 Underlying Cause of Death."),
+    p(strong("Our project seeks to find if COVID-19 had any affect on the number of deaths in the other 12 causes."), "We combined", 
+      a("Weekly Counts of Deaths by State and Select Causes, 2014-2018", href="https://data.cdc.gov/NCHS/Weekly-Counts-of-Deaths-by-State-and-Select-Causes/3yf8-kanr"),  
+      "and", a("Weekly Counts of Deaths by State and Select Causes, 2019-2020", href="https://data.cdc.gov/NCHS/Weekly-Counts-of-Deaths-by-State-and-Select-Causes/muzy-jte6"), 
+      "datasets into one tidy dataset to represent provisional counts of deaths by the week the deaths occurred, by state of occurrence, and by select underlying causes of death from 2014-2020."),
+    p("The code for this Shiny app can be found on", a("GitHub.", href="https://github.com/rollerb/cods")),
+    br(),
     tabsetPanel(
         type = "tabs",
         tabPanel("Correlations", 
-            h2("CODs Correlations Over Time"),
-            sidebarLayout(
-                 sidebarPanel(
-                     helpText("Customize the time series plots using these options:"),
-                     lapply(1:length(cod_causes), function(x) {
-                         n <- length(cod_causes)
-                         col <- col2hex(cod_palette[x])
-                         css_col <- paste0("#cods div.checkbox:nth-child(",x,
-                                           ") span{color: ", col,"; ")
-                         tags$style(type="text/css", css_col)
-                     }),
-                     checkboxGroupInput(
-                         "cods",
-                         "Causes of Death",
-                         cod_causes,
-                         cod_causes
+                 h2("Causes of Death by Time"),
+                 p("The main focus of our analysis was comparing the CODs over time.
+                   In other words, we looked for a correlation between one COD over time and another,
+                   with special focus being placed on COVID-19. We used four strategies to address this question:",
+                 a("Perason correlation coefficients,", href = "https://inspirationalfreethought.wordpress.com/2014/05/16/spurious-correlations-with-time-series-what-we-can-learn/"),
+                 a("Granger causality,", href="https://en.wikipedia.org/wiki/Granger_causality"),
+                 a("predicted deaths", href="https://www.cdc.gov/nchs/nvss/vsrr/covid19/excess_deaths.htm"),
+                 "(shown on the \"Predictions\" tab), and basic descriptive visualizations like time series plots."),
+                 p("On this tab, you can see all 13 CODs, which you can hide or show individually. We also have a couple 
+                   correlation buttons that will select only those CODs that are significant based on the time frame you 
+                   have selected and the statistical calculations. You can control the years shown by moving the \"Years\" 
+                   slider. A couple notes about the statistical calculations: the Perason correlation is done on the
+                   time series difference to remove any non-stationarity characteristics; and the Granger causality only
+                   looks at the weeks where there are COVID-19 deaths." ),
+                 br(),
+                 sidebarLayout(
+                     sidebarPanel(
+                         helpText("Customize the time series plots using these options:"),
+                         lapply(1:length(cod_causes), function(x) {
+                             n <- length(cod_causes)
+                             col <- col2hex(cod_palette[x])
+                             css_col <- paste0("#cods div.checkbox:nth-child(",x,
+                                               ") span{color: ", col,"; ")
+                             tags$style(type="text/css", css_col)
+                         }),
+                         checkboxGroupInput(
+                             "cods",
+                             "Causes of Death",
+                             cod_causes,
+                             cod_causes
+                         ),
+                         p(
+                             actionButton("select_all", "Select All"),
+                             actionButton("deselect_all", "Deselect All")
+                         ),
+                         p(
+                             strong("Significant COVID-19 Correlations"),
+                             style = "margin-top: 15px"
+                         ),
+                         p(
+                             actionButton("select_granger", "Granger Causality"),
+                             actionButton("select_pearson", "Pearson Correlation")
+                         ),
+                         sliderInput(
+                             "years",
+                             "Years",
+                             min = 2014, max = 2020,
+                             value = c(2019,2020),
+                             sep = ""
+                         )
                      ),
-                     p(
-                         actionButton("select_all", "Select All"),
-                         actionButton("deselect_all", "Deselect All")
-                     ),
-                     p(
-                         strong("Significant COVID-19 Correlations"),
-                         style = "margin-top: 15px"
-                     ),
-                     p(
-                         actionButton("select_granger", "Granger Causality"),
-                         actionButton("select_pearson", "Pearson Correlation")
-                     ),
-                     sliderInput(
-                         "years",
-                         "Years",
-                         min = 2014, max = 2020,
-                         value = c(2019,2020),
-                         sep = ""
+                     mainPanel(
+                         tabsetPanel(
+                             type = "tabs",
+                             tabPanel("Timeline", plotlyOutput("cod_timelines"), style = "margin-top: 10px"),
+                             tabPanel("Stacked", plotlyOutput("stacked_cod"), style = "margin-top: 10px")
+                         ),
+                         
+                         fluidRow(
+                             column(6, plotOutput("granger_plot")),
+                             column(6, plotOutput("pearson_corr"))
+                         )
                      )
-                 ),
-                 mainPanel(
-                     tabsetPanel(
-                         type = "tabs",
-                         tabPanel("Timeline", plotlyOutput("cod_timelines"), style = "margin-top: 10px"),
-                         tabPanel("Stacked", plotlyOutput("stacked_cod"), style = "margin-top: 10px")
-                     ),
-                     
-                     fluidRow(
-                         column(6, plotOutput("granger_plot")),
-                         column(6, plotOutput("pearson_corr"))
-                     )
-                 )
-            )        
+                 )        
         ),
         tabPanel("Predictions",
-             h2("Causes of Death in 2020: Predicted vs. Actual"),
-             p("Here we compare what the predicted death count for a COD compared to the actual death counts."),
-             sidebarLayout(
-                 sidebarPanel(
-                     helpText("Select cause of death to see 2020 forecast:"),
-                     selectInput(
-                         "predict_cause",
-                         "Cause of Death",
-                         c("ALL", non_covid_causes),
-                         selected = "ALL"
+                 h2("Causes of Death by Predictions"),
+                 p("Another way of looking at COD abnormalities is to look at the expected death count versus actual count.
+                   We would expect the counts to not go outside of the 95% confidence interval, and if there are counts that
+                   are beyond those bounds, we would consider them statistically unusual. We can't come to any conclusions
+                   about what caused these abnormalities, but we can show when it happens and can speculate on cause.
+                   Of particular interest to us, is any abnormal changes during the COVID-19 pandemic, which there are quite
+                   a few anomalies in the plots below. This type of analysis is usually done to identify \"excess deaths\",
+                   but we are using it in a more general sense, not just to identify total COVID-19 counts."),
+                 p("The predicted death counts were predicted using",
+                 a("ARIMA", href="https://en.wikipedia.org/wiki/Autoregressive_integrated_moving_average"),
+                 "models and were developed using the data from 2015-2019."),
+                 br(),
+                 sidebarLayout(
+                     sidebarPanel(
+                         helpText("Select cause of death to see 2020 forecast:"),
+                         selectInput(
+                             "predict_cause",
+                             "Cause of Death",
+                             c("ALL", non_covid_causes),
+                             selected = "ALL"
+                         ),
+                         sliderInput(
+                             "past_years",
+                             "Past Years",
+                             min = 2015, max = 2020,
+                             value = 2020,
+                             sep = ""
+                         )
                      ),
-                     sliderInput(
-                         "past_years",
-                         "Past Years",
-                         min = 2015, max = 2020,
-                         value = 2020,
-                         sep = ""
+                     mainPanel(
+                         plotOutput("predict_plot")
                      )
-                 ),
-                 mainPanel(
-                     plotOutput("predict_plot")
-                 )
-             )        
+                 )        
         ),
         tabPanel("Regions",
-             h2("Causes of Death by Region"),
-             fluidRow(
-                 column(12, plotlyOutput("map_cod"))
-             ),
-             p("Here we see the CODs by region."),
-             sidebarLayout(
-                 sidebarPanel(
-                     helpText("Causes of Death by Region with Population Normalized"),
-                     checkboxGroupInput(
-                         "cdc_years",
-                         "Years",
-                         cod_years,
-                         c(2017,2018,2019,2020)
-                     ),
-                     checkboxGroupInput(
-                         "regions",
-                         "Region",
-                         cod_regions,
-                         cod_regions
-                     )
+                 h2("Causes of Death by Region"),
+                 fluidRow(
+                     column(12, plotlyOutput("map_cod"))
                  ),
-                 mainPanel(
-                     plotOutput("location_plot", height = "800px")
+                 p("Here we see the CODs by region."),
+                 sidebarLayout(
+                     sidebarPanel(
+                         helpText("Causes of Death by Region with Population Normalized"),
+                         checkboxGroupInput(
+                             "cdc_years",
+                             "Years",
+                             cod_years,
+                             c(2017,2018,2019,2020)
+                         ),
+                         checkboxGroupInput(
+                             "regions",
+                             "Region",
+                             cod_regions,
+                             cod_regions
+                         )
+                     ),
+                     mainPanel(
+                         plotOutput("location_plot", height = "800px")
+                     )
                  )
-             )
         )
     )
 )
@@ -157,11 +197,11 @@ server <- function(input, output, session) {
     observeEvent(input$select_all, {
         updateCheckboxGroupInput(session, "cods", choices = cod_causes, selected = cod_causes)
     })
-
+    
     observeEvent(input$deselect_all, {
         updateCheckboxGroupInput(session, "cods", choices = cod_causes, selected = c())
     })
-
+    
     observeEvent(input$select_granger, {
         covid_fields <- c("covid", "covid_multiple")
         sig_granger <- cod_granger %>%
@@ -170,16 +210,16 @@ server <- function(input, output, session) {
         selected = unique(c(sig_granger$result, sig_granger$predictor))
         updateCheckboxGroupInput(session, "cods", choices = cod_causes, selected = selected)
     })
-
+    
     observeEvent(input$select_pearson, {
         updateCheckboxGroupInput(session, "cods", choices = cod_causes, selected = get_pearson_names(cod_measures, cod_causes, input$years))
     })
-
+    
     output$cod_timelines <- renderPlotly({
         validate(
             need(length(input$cods) > 0, "Please select causes of death in order to see plots.")
         )
-
+        
         cods <- input$cods
         data <- cod_measures_long %>% filter(measure %in% cods) %>% rename(cause = measure, deaths = value)
         date_bounds <- find_date_bounds(data$week_end, input$years)
@@ -187,7 +227,7 @@ server <- function(input, output, session) {
         max_date <- date_bounds$max_date
         date_bounds_title <- paste0(date_bounds$min_date, " to ", date_bounds$max_date)
         selected_palette <- cod_palette[which(cod_causes %in% cods)]
-
+        
         cod_plot <- ggplot(data, aes(x = week_end, y = deaths, color = cause)) +
             geom_line(size = .5) +
             xlim(min_date, max_date) +
@@ -198,22 +238,22 @@ server <- function(input, output, session) {
         ggplotly(cod_plot, tooltip = c("colour", "x", "y")) %>%
             layout(margin = list(t = 40), title = list(x = 0.1, y = 0.96, text = paste0("Causes of Death Over Time <br><sup>", date_bounds_title, "</sup>")))
     })
-
+    
     output$granger_plot <- renderPlot({
         req(input$cods)
         cod_granger %>%
             filter(result %in% input$cods & predictor %in% input$cods) %>%
             slice_min(granger, n = 10) %>%
             ggplot(aes(x = reorder(granger_formula, granger), y = granger, fill = granger)) +
-                geom_col() +
-                coord_flip() +
-                labs(y = "Granger p-value", title = "Top 10 Granger Causality*", caption = "*Only considers weeks with COVID deaths") +
-                theme(axis.title.y = element_blank(), legend.position = "none") +
-                scale_fill_gradient2(mid = "grey", high = "brown") +
-                scale_y_continuous(expand = c(0,0)) +
-                geom_hline(yintercept = 0.05, color = "black", size = 0.4, linetype = "dashed")
+            geom_col() +
+            coord_flip() +
+            labs(y = "Granger p-value", title = "Top 10 Granger Causality*", caption = "*Only considers weeks with COVID deaths") +
+            theme(axis.title.y = element_blank(), legend.position = "none") +
+            scale_fill_gradient2(mid = "grey", high = "brown") +
+            scale_y_continuous(expand = c(0,0)) +
+            geom_hline(yintercept = 0.05, color = "black", size = 0.4, linetype = "dashed")
     })
-
+    
     output$pearson_corr <- renderPlot({
         req(input$cods, input$years)
         date_bounds <- find_date_bounds(cod_measures$week_end, input$years)
@@ -225,19 +265,29 @@ server <- function(input, output, session) {
                    title = "Pearson Correlation") +
             labs(subtitle = paste0(date_bounds$min_date, " to ", date_bounds$max_date))
     })
-
+    
     output$predict_plot <- renderPlot({
         predict_all <- input$predict_cause == "ALL"
         data <- if (predict_all) cod_predictions else cod_predictions %>% filter(disease == input$predict_cause)
-
-        has_past_data <- !predict_all & input$past_years < 2020
-
-        past_data <- if (has_past_data) {
-            cod_measures_long %>%
-                filter(year(week_end) >= input$past_years & year(week_end) < 2020) %>%
-                filter(measure == input$predict_cause)
+        
+        has_past_data <- input$past_years < 2020
+        
+        data <- if (has_past_data) {
+            past_data <- cod_measures_long %>%
+                filter(year(week_end) >= input$past_years & year(week_end) < 2020, !(measure %in% covid_causes))
+            
+            if (!predict_all) {
+                past_data <- past_data %>% filter(measure == input$predict_cause)   
+            }
+            
+            past_data %>%
+                rename(disease = measure, actual = value, date = week_end) %>%
+                bind_rows(data)
+        } else {
+            data
         }
-
+        
+        print(head(data))
         ggpredict <- ggplot(data) +
             geom_line(aes(x = date, y = actual)) +
             geom_line(aes(x = date, y = upper), color = "blue") +
@@ -246,20 +296,14 @@ server <- function(input, output, session) {
             geom_ribbon(aes(x = date, ymin = lower, ymax = upper), fill = "blue", alpha = 0.2) +
             scale_y_continuous(labels = comma) +
             labs(title = paste(input$predict_cause, "expected death count in 2020"), subtitle = "showing 95% confidence interval", x = "Week", y = "Deaths")
-
-        ggpredict <- if (has_past_data) {
-            ggpredict + geom_line(data = past_data, aes(x = week_end, y = value))
-        } else {
-            ggpredict
-        }
-
+        
         if (predict_all) {
             ggpredict + facet_wrap(vars(disease), scales = "free")
         } else {
             ggpredict
         }
     })
-
+    
     output$stacked_cod <- renderPlotly({
         req(input$cods)
         cods <- input$cods
@@ -269,7 +313,7 @@ server <- function(input, output, session) {
         max_date <- date_bounds$max_date
         date_bounds_title <- paste0(date_bounds$min_date, " to ", date_bounds$max_date)
         selected_palette <- cod_palette[which(cod_causes %in% cods)]
-
+        
         cod_plot <- ggplot(data = data, aes(x = week_end, y = deaths, fill = cause)) +
             geom_bar(position = "fill", stat = "identity") +
             scale_fill_manual(values = selected_palette) +
@@ -279,7 +323,7 @@ server <- function(input, output, session) {
         ggplotly(cod_plot, tooltip = c("fill", "x", "y")) %>%
             layout(margin = list(t = 40), title = list(x = 0.1, y = 0.96, text = paste0("Causes of Death Percentage Over Time <br><sup>", date_bounds_title, "</sup>")))
     })
-
+    
     output$map_cod <- renderPlotly({
         req(input$cods)
         
@@ -296,21 +340,21 @@ server <- function(input, output, session) {
                                  high = muted("red"))
         ggplotly(covid_map_plot, tooltip = "text")
     })
-
+    
     output$location_plot <- renderPlot({
         req(input$cdc_years, input$regions)
         data <- cod_statecauses %>% filter(Year == input$cdc_years)
         data <- data %>% filter(region == input$regions) %>% mutate(NormalizedPopulation = ValuePop/100000)
         barColourCount = length(unique(cod_statecauses$Measure))
         getPalette = colorRampPalette(brewer.pal(12, "Paired"))
-
-
+        
+        
         ggplot(data = data,  aes(x=Cause, y = NormalizedPopulation, fill=Measure)) +
             geom_bar(stat="identity") +
             facet_wrap(~Year + region, ncol=length(input$regions)) +
             scale_fill_manual(values = getPalette(barColourCount)) +
             theme(axis.text.x=element_text(angle=90,hjust=1,vjust=.5))
-
+        
     })
 }
 
