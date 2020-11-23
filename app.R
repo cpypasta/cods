@@ -287,7 +287,6 @@ server <- function(input, output, session) {
             data
         }
         
-        print(head(data))
         ggpredict <- ggplot(data) +
             geom_line(aes(x = date, y = actual)) +
             geom_line(aes(x = date, y = upper), color = "blue") +
