@@ -17,6 +17,7 @@ cod_measures <- readRDS("data/cod_measures.rds")
 cod_measures_long <- readRDS("data/cod_measures_long.rds")
 cod_granger <- readRDS("data/cod_granger.rds")
 cod_predictions <- readRDS("data/cod_predictions.rds")
+usa_states <- readRDS("data/usa_states.rds")
 
 cod_causes <- levels(cod_measures_long$measure)
 non_covid_causes <- cod_causes[!(cod_causes %in% c("covid", "covid_multiple"))]
@@ -67,7 +68,8 @@ ui <- fluidPage(
             tabsetPanel(
                 type = "tabs",
                 tabPanel("Timeline", plotlyOutput("cod_timelines"), style = "margin-top: 10px"),
-                tabPanel("Stacked", plotlyOutput("stacked_cod"), style = "margin-top: 10px")
+                tabPanel("Stacked", plotlyOutput("stacked_cod"), style = "margin-top: 10px"),
+                tabPanel("Map", plotlyOutput("map_cod"), style = "margin-top: 10px")
             ),
             fluidRow(
                 column(6, plotOutput("granger_plot")),
@@ -224,6 +226,10 @@ server <- function(input, output, session) {
             ylab("Weekly Deaths Percent")
         ggplotly(cod_plot, tooltip = c("fill", "x", "y")) %>%
             layout(margin = list(t = 40), title = list(x = 0.1, y = 0.96, text = paste0("Causes of Death Percentage Over Time <br><sup>", date_bounds_title, "</sup>")))        
+    })
+    
+    output$map_cod <- renderPlotly({
+        req(input$cods)
     })
 }
 
