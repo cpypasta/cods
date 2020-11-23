@@ -41,97 +41,114 @@ covid_map_data <- cod_statecauses %>%
 
 ui <- fluidPage(
     titlePanel("Causes of Death"),
-    p("Here we explore the causes of death from the CDC."),
-    sidebarLayout(
-        sidebarPanel(
-            helpText("Customize the time series plots using these options:"),
-            lapply(1:length(cod_causes), function(x) {
-                n <- length(cod_causes)
-                col <- col2hex(cod_palette[x])
-                css_col <- paste0("#cods div.checkbox:nth-child(",x,
-                                  ") span{color: ", col,"; ")
-                tags$style(type="text/css", css_col)
-            }),
-            checkboxGroupInput(
-                "cods",
-                "Causes of Death",
-                cod_causes,
-                cod_causes
-            ),
-            p(
-                actionButton("select_all", "Select All"),
-                actionButton("deselect_all", "Deselect All")
-            ),
-            p(
-                strong("Significant COVID-19 Correlations"),
-                style = "margin-top: 15px"
-            ),
-            p(
-              actionButton("select_granger", "Granger Causality"),
-              actionButton("select_pearson", "Pearson Correlation")
-            ),
-            sliderInput(
-                "years",
-                "Years",
-                min = 2014, max = 2020,
-                value = c(2019,2020),
-                sep = ""
-            )
+    p("Motivation: COVID-19 deaths in the United States have surpassed 256,000, and the coronavirus is now the third leading cause of death in this country, after heart disease and cancer. Before the pandemic, the U.S. already had a high overall mortality rate, and the gap has widened in the last few decades.In this analysis, we put the pandemic's toll into perspective by comparing where COVID-19 falls as a leading cause of death in the U.S. and how it has affected the number of deaths in other 12 causes. Causes of death analysis attempt to understand the burden of mortality that are directly or indirectly attributed to COVID-19."), 
+    p("The CDC National Center for Health Statistics (NCHS) collects weekly counts of deaths by state and of select causes that are categorized by underlying cause of death listed in the standardized health care grouping of ICD-10 codes. From 2014 - to current period, there were 12 main listed causes, including leading USA killers such as diseases of heart, diabetes, and chronic lower respiratory diseases. With the onset of COVID-19, two more causes were added: COVID-19 Multiple Cause of Death and COVID-19 Underlying Cause of Death."),
+    p("Our project seeks to find if COVID-19 had any affect on the number of deaths in the other 12 causes. We combined \"Weekly Counts of Deaths by State and Select Causes, 2014-2018\" and \"Weekly Counts of Deaths by State and Select Causes, 2019-2020\" datasets into one tidy dataset to represent provisional counts of deaths by the week the deaths occurred, by state of occurrence, and by select underlying causes of death from 2014-2020. The dataset also includes weekly provisional counts of death for COVID-19, coded to ICD-10 code U07.1 as an underlying or multiple cause of death."),
+    tabsetPanel(
+        type = "tabs",
+        tabPanel("Correlations", 
+            h2("CODs Correlations Over Time"),
+            sidebarLayout(
+                 sidebarPanel(
+                     helpText("Customize the time series plots using these options:"),
+                     lapply(1:length(cod_causes), function(x) {
+                         n <- length(cod_causes)
+                         col <- col2hex(cod_palette[x])
+                         css_col <- paste0("#cods div.checkbox:nth-child(",x,
+                                           ") span{color: ", col,"; ")
+                         tags$style(type="text/css", css_col)
+                     }),
+                     checkboxGroupInput(
+                         "cods",
+                         "Causes of Death",
+                         cod_causes,
+                         cod_causes
+                     ),
+                     p(
+                         actionButton("select_all", "Select All"),
+                         actionButton("deselect_all", "Deselect All")
+                     ),
+                     p(
+                         strong("Significant COVID-19 Correlations"),
+                         style = "margin-top: 15px"
+                     ),
+                     p(
+                         actionButton("select_granger", "Granger Causality"),
+                         actionButton("select_pearson", "Pearson Correlation")
+                     ),
+                     sliderInput(
+                         "years",
+                         "Years",
+                         min = 2014, max = 2020,
+                         value = c(2019,2020),
+                         sep = ""
+                     )
+                 ),
+                 mainPanel(
+                     tabsetPanel(
+                         type = "tabs",
+                         tabPanel("Timeline", plotlyOutput("cod_timelines"), style = "margin-top: 10px"),
+                         tabPanel("Stacked", plotlyOutput("stacked_cod"), style = "margin-top: 10px")
+                     ),
+                     
+                     fluidRow(
+                         column(6, plotOutput("granger_plot")),
+                         column(6, plotOutput("pearson_corr"))
+                     )
+                 )
+            )        
         ),
-        mainPanel(
-            tabsetPanel(
-                type = "tabs",
-                tabPanel("Timeline", plotlyOutput("cod_timelines"), style = "margin-top: 10px"),
-                tabPanel("Stacked", plotlyOutput("stacked_cod"), style = "margin-top: 10px"),
-                tabPanel("COVID-19 Map", plotlyOutput("map_cod"), style = "margin-top: 10px")
-            ),
-            fluidRow(
-                column(6, plotOutput("granger_plot")),
-                column(6, plotOutput("pearson_corr"))
-            )
-        )
-    ),
-    h2("Causes of Death in 2020: Predicted vs. Actual", style = "margin-top: 50px"),
-    sidebarLayout(
-        sidebarPanel(
-            helpText("Select cause of death to see 2020 forecast:"),
-            selectInput(
-                "predict_cause",
-                "Cause of Death",
-                c("ALL", non_covid_causes),
-                selected = "ALL"
-            ),
-            sliderInput(
-                "past_years",
-                "Past Years",
-                min = 2015, max = 2020,
-                value = 2020,
-                sep = ""
-            )
+        tabPanel("Predictions",
+             h2("Causes of Death in 2020: Predicted vs. Actual"),
+             p("Here we compare what the predicted death count for a COD compared to the actual death counts."),
+             sidebarLayout(
+                 sidebarPanel(
+                     helpText("Select cause of death to see 2020 forecast:"),
+                     selectInput(
+                         "predict_cause",
+                         "Cause of Death",
+                         c("ALL", non_covid_causes),
+                         selected = "ALL"
+                     ),
+                     sliderInput(
+                         "past_years",
+                         "Past Years",
+                         min = 2015, max = 2020,
+                         value = 2020,
+                         sep = ""
+                     )
+                 ),
+                 mainPanel(
+                     plotOutput("predict_plot")
+                 )
+             )        
         ),
-        mainPanel(
-            plotOutput("predict_plot")
-        )
-    ),
-    h2("Causes of Death by Region", style = "margin-top: 50px"),
-    sidebarLayout(
-        sidebarPanel(
-            helpText("Causes of Death by Region with Population Normalized"),
-            checkboxGroupInput(
-                "cdc_years",
-                "Years",
-                cod_years,
-                c(2017,2018,2019,2020)
-            ),
-            checkboxGroupInput(
-              "regions",
-              "Region",
-              cod_regions,
-              cod_regions
-            )
-        ),
-        mainPanel(
-            plotOutput("location_plot", height = "800px")
+        tabPanel("Regions",
+             h2("Causes of Death by Region"),
+             fluidRow(
+                 column(12, plotlyOutput("map_cod"))
+             ),
+             p("Here we see the CODs by region."),
+             sidebarLayout(
+                 sidebarPanel(
+                     helpText("Causes of Death by Region with Population Normalized"),
+                     checkboxGroupInput(
+                         "cdc_years",
+                         "Years",
+                         cod_years,
+                         c(2017,2018,2019,2020)
+                     ),
+                     checkboxGroupInput(
+                         "regions",
+                         "Region",
+                         cod_regions,
+                         cod_regions
+                     )
+                 ),
+                 mainPanel(
+                     plotOutput("location_plot", height = "800px")
+                 )
+             )
         )
     )
 )
