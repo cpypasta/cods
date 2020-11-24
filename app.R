@@ -56,23 +56,31 @@ ui <- fluidPage(
       Cause of Death and COVID-19 Underlying Cause of Death."),
     p(strong("Our project seeks to find if COVID-19 had any affect on the number of deaths in the other 12 causes."), "We combined", 
       a("Weekly Counts of Deaths by State and Select Causes, 2014-2018", href="https://data.cdc.gov/NCHS/Weekly-Counts-of-Deaths-by-State-and-Select-Causes/3yf8-kanr"),  
-      "and", a("Weekly Counts of Deaths by State and Select Causes, 2019-2020", href="https://data.cdc.gov/NCHS/Weekly-Counts-of-Deaths-by-State-and-Select-Causes/muzy-jte6"), 
-      "datasets into one tidy dataset to represent provisional counts of deaths by the week the deaths occurred, by state of occurrence, and by select underlying causes of death from 2014-2020."),
-    p("The code for this Shiny app can be found on", a("GitHub.", href="https://github.com/rollerb/cods")),
+      "and",
+      a("Weekly Counts of Deaths by State and Select Causes, 2019-2020", href="https://data.cdc.gov/NCHS/Weekly-Counts-of-Deaths-by-State-and-Select-Causes/muzy-jte6"), 
+      "datasets into one tidy dataset to represent provisional counts of deaths by the week the deaths occurred, by state of occurrence, and by select underlying causes of death from 2014-2020.",
+      "We also used the", a("U.S. 2020 Population Density", href="https://worldpopulationreview.com/state-rankings/state-densities"), "dataset to calculate deaths per capita."),
+    p("Our overall finding from our analysis is that COVID-19 most certainly affected the death counts for other COD, but we 
+      cannot be sure how exactly they are correlated. It may simply be due to misclassified COD, or it could be due to a true causal interaction. A few COD have
+      pretty signficant statistical support for a correlation with COVID-19: diabetes and heart disease. These COD show
+      significance with Granger causality and Pearson correlations. Moreover, Alzheimer's disease shows signficant Pearson
+      correlation, a strong Granger causality (though less than signficant), and clearly shows a prediction anomaly in 2020.
+      More intensive analysis would need to be done to strengthen and expand on these findings."),
+    p("The code for this Shiny app can be found on", a("GitHub.", href="https://github.com/rollerb/cods"), "There will find all the code for this Shiny app as well as all the preprocessing logic for reproducing the results shown here."),
     br(),
     tabsetPanel(
         type = "tabs",
         tabPanel("Correlations", 
                  h2("Causes of Death by Time"),
-                 p("The main focus of our analysis was comparing the CODs over time.
+                 p("The main focus of our analysis was comparing the COD over time.
                    In other words, we looked for a correlation between one COD over time and another,
                    with special focus being placed on COVID-19. We used four strategies to address this question:",
                  a("Perason correlation coefficients,", href = "https://inspirationalfreethought.wordpress.com/2014/05/16/spurious-correlations-with-time-series-what-we-can-learn/"),
                  a("Granger causality,", href="https://en.wikipedia.org/wiki/Granger_causality"),
                  a("predicted deaths", href="https://www.cdc.gov/nchs/nvss/vsrr/covid19/excess_deaths.htm"),
                  "(shown on the \"Predictions\" tab), and basic descriptive visualizations like time series plots."),
-                 p("On this tab, you can see all 13 CODs, which you can hide or show individually. We also have a couple 
-                   correlation buttons that will select only those CODs that are significant based on the time frame you 
+                 p("On this tab, you can see all 13 COD, which you can hide or show individually. We also have a couple 
+                   correlation buttons that will select only those COD that are significant based on the time frame you 
                    have selected and the statistical calculations. You can control the years shown by moving the \"Years\" 
                    slider. A couple notes about the statistical calculations: the Perason correlation is done on the
                    time series difference to remove any non-stationarity characteristics; and the Granger causality only
@@ -165,14 +173,14 @@ ui <- fluidPage(
         ),
         tabPanel("Regions",
                  h2("Causes of Death by Region"),
+                 p("Here we see the COD per capita (of the population) by region, state, and year. Determining
+                   the dispersement of how the causes of death are different by region, state, and year allows for a more 
+                   targeted view of how COVID-19 has affected each COD and to notice patterns. For the most
+                   part we see a fairly consistent pattern from year to year for cause of death prior to 2020."),
                  fluidRow(
                      column(12, plotlyOutput("map_cod"))
                  ),
-                 p("Here we see the cause of deaths per capita (of the population) by region and by year. Determining
-                   the dispersement of how the causes of death are different by region and year, allows for a more 
-                   targeted view of how covid-19 has affected each cause of death and to notice patterns. For the most
-                   part we see a fairly consistent pattern from year to year for cause of death on a per region basis prior to 2020.
-                   In the charts below, the fewer years chosen, the easier it is to see a difference, particlulary in 
+                 p("In the charts below, the fewer years chosen, the easier it is to see a difference, particlulary in 
                    the South. Additionally, with 2020 (and COVID-19) we begin to see a drop in things like
                    heart disease, cancer, and Alzheimer's. Heart disease and cancer are known risk factors for death 
                    from COVID-19, but Alzheimer's is not. We can hypothesize for possible reasons, but overall this 
