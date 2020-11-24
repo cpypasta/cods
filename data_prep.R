@@ -306,5 +306,5 @@ StateCausesFullPop <- StateCausesFullPop %>% mutate(upstate = state)
 #reordering JIC for downstream code. Don't think there is dependancy, but putting here for safety
 StateCausesFullPop <- StateCausesFullPop[, c(1,2,3,4,9,5,6,7,8,10,15,11,12,13,14)]
 
-write_rds(StateCausesFullPop, "statecausesfullpop.rds")
+write_rds(cod_statecauses, "statecausesfullpop.rds")
 
