@@ -168,7 +168,18 @@ ui <- fluidPage(
                  fluidRow(
                      column(12, plotlyOutput("map_cod"))
                  ),
-                 p("Here we see the CODs by region."),
+                 p("Here we see the cause of deaths per capita (of the population) by region and by year. Determining
+                   the dispersement of how the causes of death are different by region and year, allows for a more 
+                   targeted view of how covid-19 has affected each cause of death and to notice patterns. For the most
+                   part we see a fairly consistent pattern from year to year for cause of death on a per region basis prior to 2020.
+                   In the charts below, the fewer years chosen, the easier it is to see a difference, particlulary in 
+                   the South. Additionally, with 2020 (and COVID-19) we begin to see a drop in things like
+                   heart disease, cancer, and Alzheimer's. Heart disease and cancer are known risk factors for death 
+                   from COVID-19, but Alzheimer's is not. We can hypothesize for possible reasons, but overall this 
+                   indicates an area that will need more research."), 
+                   p("Note: While it is possible to select all 
+                   years for all regions, it is advised to select no more than 4 years to be able to easily see 
+                   differences between the charts."),
                  sidebarLayout(
                      sidebarPanel(
                          helpText("Causes of Death by Region with Population Normalized"),
