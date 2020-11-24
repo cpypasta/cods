@@ -66,7 +66,7 @@ ui <- fluidPage(
       significance with Granger causality and Pearson correlations. Moreover, Alzheimer's disease shows signficant Pearson
       correlation, a strong Granger causality (though less than signficant), and clearly shows a prediction anomaly in 2020.
       More intensive analysis would need to be done to strengthen and expand on these findings."),
-    p("The code for this Shiny app can be found on", a("GitHub.", href="https://github.com/rollerb/cods"), "There will find all the code for this Shiny app as well as all the preprocessing logic for reproducing the results shown here."),
+    p("The code for this Shiny app can be found on", a("GitHub.", href="https://github.com/rollerb/cods"), "There you will find all the code for this Shiny app as well as all the preprocessing logic for reproducing the results shown here."),
     br(),
     tabsetPanel(
         type = "tabs",
@@ -175,12 +175,12 @@ ui <- fluidPage(
                  h2("Causes of Death by Region"),
                  p("Here we see the COD per capita (of the population) by region, state, and year. Determining
                    the dispersement of how the causes of death are different by region, state, and year allows for a more 
-                   targeted view of how COVID-19 has affected each COD and to notice patterns. For the most
-                   part we see a fairly consistent pattern from year to year for cause of death prior to 2020."),
+                   targeted view of how COVID-19 has affected each COD and to notice patterns."),
                  fluidRow(
                      column(12, plotlyOutput("map_cod"))
                  ),
-                 p("In the charts below, the fewer years chosen, the easier it is to see a difference, particlulary in 
+                 p("For the most part we see a fairly consistent pattern from year to year for cause of death prior to 2020.
+                   In the charts below, the fewer years chosen, the easier it is to see a difference, particlulary in 
                    the South. Additionally, with 2020 (and COVID-19) we begin to see a drop in things like
                    heart disease, cancer, and Alzheimer's. Heart disease and cancer are known risk factors for death 
                    from COVID-19, but Alzheimer's is not. We can hypothesize for possible reasons, but overall this 
