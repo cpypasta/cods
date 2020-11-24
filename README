@@ -1,3 +1,3 @@
 The `app.R` and `utils.R` files have all the logic to run the Shiny app. The `data_prep.R` has all the logic to go from the original dataset sources to the RDS files that get used by the Shiny app.
 
-You can find the app [hosted on Shinyapp.io](https://broller.shinyapps.io/cods/). 
+You can find the app hosted on Shinyapp.io: https://broller.shinyapps.io/cods/ 
