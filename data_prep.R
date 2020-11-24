@@ -8,10 +8,12 @@ library(lubridate)
 library(gtools)
 library(ggthemes)
 
+
 select <- dplyr::select
 
 deaths2018 <- read_csv("https://data.cdc.gov/api/views/3yf8-kanr/rows.csv?accessType=DOWNLOAD")
 deaths2020 <- read_csv("https://data.cdc.gov/api/views/muzy-jte6/rows.csv?accessType=DOWNLOAD")
+
 
 dim(deaths2018)
 dim(deaths2020)
@@ -208,3 +210,101 @@ write_rds(cod_all_predictions, "cod_predictions.rds")
 
 USA <- map_data("state")
 write_rds(USA, "usa_states.rds")
+
+####
+
+#Create a subset to merge later with pop density dataset
+StateCausesFull  <- deaths_tidy_long %>%  filter((!(measure %in% c("all_causes", "natural_causes"))))
+
+#New York and New York City is a special case and is separated out. We need to combine them 
+updateNYFull <- StateCausesFull %>% filter(state %in% c('New York','New York City')) %>% 
+  group_by(week_end, measure, year, week) %>% 
+  summarize(
+    value = sum(value)) %>% 
+  mutate(state = 'New York') 
+
+updateNYFull <- updateNYFull[, c(6,3,4,1,2,5)]
+
+StateCausesFull <- StateCausesFull %>% filter(!(state %in% c('New York','New York City')))
+StateCausesFull <- StateCausesFull %>% bind_rows(updateNYFull) 
+
+#Clean up the data all years
+StateCausesFull$state <- gsub("District of Columbia", "Washington DC", StateCausesFull$state, fixed=TRUE)
+
+
+#Add state info and give short names for measures
+StatesDF <- data.frame(state = state.name, abb = state.abb, region = state.region, div = state.division) 
+
+#Need to add rows for places we have COD data, but aren't listed in states datasest
+StatesDF <- StatesDF %>% add_row(state="Washington DC", abb="DC", region="Northeast", div="Middle Atlantic")
+StatesDF <- StatesDF  %>% add_row(state="Puerto Rico", abb="PR")
+
+#combine the datasets so we have regional data with our main dataset
+StateCausesFull <- merge(StateCausesFull, StatesDF, by="state", fixed=TRUE)
+
+#Need to create format to match backwards compatibility
+StateCausesFull <- StateCausesFull %>% 
+  mutate(LongCause = case_when(
+    measure == "alzheimer" ~ "AlzheimerDisease",
+    measure == "cancer" ~"Cancer",
+    measure == "cerebrovascular" ~ "Cerebrovascular",
+    measure == "covid" ~ "Covid",
+    measure == "covid_multiple" ~ "CovidMultiple",
+    measure == "diabetes" ~ "Diabetes",
+    measure == "heart_disease" ~ "HeartDisease",
+    measure == "influenza_pneumonia" ~ "InfluenzaAndPneumonia",
+    measure == "kidney_disease" ~ "KidneyDisease",
+    measure == "lower_respiratory" ~ "LowerRespiratory",
+    measure == "other_respiratory" ~ "OtherRespiratory",
+    measure == "septicemia" ~ "Septicemia",
+    measure == "unknown_cause" ~ "UnknownCauses"
+  )) 
+
+#some of our graphs will do better with names of shorter length
+StateCausesFull <- StateCausesFull %>% 
+  mutate(Cause = case_when(
+    LongCause == "AlzheimerDisease" ~ "Alzhiem",
+    LongCause == "Cancer" ~"Cancer",
+    LongCause == "Cerebrovascular" ~ "Cerebro",
+    LongCause == "Covid" ~ "Covid",
+    LongCause == "CovidMultiple" ~ "Covid Multi",
+    LongCause == "Diabetes" ~ "Diabetes",
+    LongCause == "HeartDisease" ~ "Heart",
+    LongCause == "InfluenzaAndPneumonia" ~ "Flu",
+    LongCause == "KidneyDisease" ~ "Kidney",
+    LongCause == "LowerRespiratory" ~ "Lower Resp",
+    LongCause == "OtherRespiratory" ~ "Other Resp",
+    LongCause == "Septicemia" ~ "Septicemia",
+    LongCause == "UnknownCauses" ~ "Unknown"
+  )) %>%
+  arrange(state,week_end,measure)
+
+#Add population data - this originally was downloaded from: https://worldpopulationreview.com/state-rankings/state-densities#dataTable
+USPopDensity <- read_csv("https://raw.githubusercontent.com/rollerb/cods/master/data/USPopDensity.csv")
+
+#All years
+StateCausesFullPop <- merge(StateCausesFull, USPopDensity, by.x="state", by.y="State",all=TRUE)
+#create a field so we know how many cases by density
+StateCausesFullPop <- StateCausesFullPop %>% mutate(ValuePop = value/Pop*100000)
+
+#we don't need this as we previously had format with different names. 
+StateCausesFullPop <- StateCausesFullPop %>% select(-starts_with("measure"))
+
+#rename for backwards compatibility downstream
+StateCausesFullPop <- StateCausesFullPop %>%
+  rename(
+    Year = "year",
+    Week = "week",
+    WeekEndDate = "week_end",
+    Measure = "LongCause",
+    Value = "value"
+  )
+
+#We need to create the column upstate separately so we don't break things downstream for code already submitted
+StateCausesFullPop <- StateCausesFullPop %>% mutate(upstate = state)
+
+#reordering JIC for downstream code. Don't think there is dependancy, but putting here for safety
+StateCausesFullPop <- StateCausesFullPop[, c(1,2,3,4,9,5,6,7,8,10,15,11,12,13,14)]
+
+write_rds(StateCausesFullPop, "statecausesfullpop.rds")
+
