@@ -95,21 +95,26 @@ cod_measures_long <- deaths_tidy_long %>%
   mutate(measure = as.factor(measure)) %>%
   arrange(week_end, measure)
 
-write_rds(cod_measures, "cod_measures.rds")
-write_rds(cod_measures_long, "cod_measures_long.rds")
+write_rds(cod_measures, "cod_measures.rds", compress = "gz")
+write_rds(cod_measures_long, "cod_measures_long.rds", compress = "gz")
 
 #### Granger Causality
 
 covid_period_measures <- cod_measures %>% filter(covid > 0)
 cod_xts <- xts(x = covid_period_measures %>% select(-week_end), order.by = covid_period_measures$week_end)
 
-granger_test <- function(formula, max_lags, data) {
-  for(i in 0:(max_lags - 1)) {
+granger_test <- function(formula, data) {
+  p_values <- sapply(0:9, function(lag) {
     g_test <- tryCatch({
-      g_test <- grangertest(formula, order = max_lags - i, data = data)
-      return(g_test)
-    }, error = function(err) {})
-  }
+      g_test <- grangertest(formula, order = 10 - lag, data = data)
+      g_test_p <- g_test["Pr(>F)"][2,]
+      if (is.nan(g_test_p)) stop("is NaN")
+      g_test_p
+    }, error = function(err) {
+      Inf
+    })    
+  })
+  round(min(p_values), 4)
 }
 
 get_granger <- function(data) {
@@ -136,16 +141,8 @@ get_granger <- function(data) {
   pairs <- by(compare_inputs, 1:nrow(compare_inputs), function(pair) {
     a <- series[,pair$result]
     b <- series[,pair$predictor]
-    var_select <- tryCatch({
-      VARselect(merge.xts(a, b), type = "none")
-    }, 
-    warning = function(war) {
-      data.frame(selection = c(10))
-    })
-    max_lags <- max(var_select$selection)
     g_formula <- paste(pair$result, pair$predictor, sep = " ~ ")
-    g_test <- granger_test(as.formula(g_formula), max_lags, series)
-    g_test_p_value <- round(g_test["Pr(>F)"][2,], 3)
+    g_test_p_value <- granger_test(as.formula(g_formula), series)
     cbind(pair, granger = g_test_p_value, granger_formula = g_formula)
   })
   do.call(rbind, pairs)
@@ -153,7 +150,7 @@ get_granger <- function(data) {
 
 cod_granger <- get_granger(cod_xts)
 
-write_rds(cod_granger, "cod_granger.rds")
+write_rds(cod_granger, "cod_granger.rds", compress = "gz")
 
 #### Predictions
 
@@ -211,13 +208,13 @@ cod_names <- cod_names[!(cod_names %in% c("covid", "covid_multiple"))]
 cod_predictions <- lapply(cod_names, function(name) get_prediction(cod_xts, name))
 cod_all_predictions <- do.call(rbind, cod_predictions)
 
-write_rds(cod_all_predictions, "cod_predictions.rds")
+write_rds(cod_all_predictions, "cod_predictions.rds", compress = "gz")
 
 
 #### USA State Polygon Data
 
 USA <- map_data("state")
-write_rds(USA, "usa_states.rds")
+write_rds(USA, "usa_states.rds", compress = "gz")
 
 ####
 
@@ -314,5 +311,5 @@ StateCausesFullPop <- StateCausesFullPop %>% mutate(upstate = state)
 #reordering JIC for downstream code. Don't think there is dependency, but putting here for safety
 StateCausesFullPop <- StateCausesFullPop[, c(1,2,3,4,9,5,6,7,8,10,15,11,12,13,14)]
 
-write_rds(cod_statecauses, "statecausesfullpop.rds")
+write_rds(StateCausesFullPop, "statecausesfullpop.rds", compress = "gz")
 
