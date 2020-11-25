@@ -205,6 +205,7 @@ get_prediction <- function(data, disease) {
   xts_to_tibble(disease_est_xts) %>% mutate(disease = disease)
 }
 
+cod_xts <- xts(x = cod_measures %>% select(-week_end), order.by = cod_measures$week_end)
 cod_names <- names(cod_xts)
 cod_names <- cod_names[!(cod_names %in% c("covid", "covid_multiple"))]
 cod_predictions <- lapply(cod_names, function(name) get_prediction(cod_xts, name))
