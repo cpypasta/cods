@@ -33,7 +33,7 @@ cod_years <- unique(cod_statecauses$Year)
 cod_regions <- unique(cod_statecauses$region)
 
 covid_map_data <- cod_statecauses %>%
-    transmute(state, year = Year, measure = Measure, value = Value, pop = Pop, value_capita = value / pop) %>%
+    transmute(state = tolower(state), year = Year, measure = Measure, value = Value, pop = Pop, value_capita = value / pop) %>%
     filter(measure %in% c("Covid", "CovidMultiple"), value > 0) %>%
     group_by(state) %>%
     summarize(value = sum(value), value_capita = sum(value_capita)) %>%    
@@ -224,7 +224,7 @@ server <- function(input, output, session) {
     observeEvent(input$select_granger, {
         covid_fields <- c("covid", "covid_multiple")
         sig_granger <- cod_granger %>%
-            filter((result %in% covid_fields | predictor %in% covid_fields) & granger <= 0.05) %>%
+            filter(result %in% non_covid_causes & predictor %in% covid_causes & granger <= 0.05) %>%
             mutate(across(where(is.factor), as.character))
         selected = unique(c(sig_granger$result, sig_granger$predictor))
         updateCheckboxGroupInput(session, "cods", choices = cod_causes, selected = selected)
@@ -261,12 +261,12 @@ server <- function(input, output, session) {
     output$granger_plot <- renderPlot({
         req(input$cods)
         cod_granger %>%
-            filter(result %in% input$cods & predictor %in% input$cods) %>%
-            slice_min(granger, n = 10) %>%
+            filter((result %in% input$cods & predictor %in% covid_causes) & !(result %in% covid_causes & predictor %in% covid_causes)) %>%
+            slice_min(granger, n = 20) %>%
             ggplot(aes(x = reorder(granger_formula, granger), y = granger, fill = granger)) +
             geom_col() +
             coord_flip() +
-            labs(y = "Granger p-value", title = "Top 10 Granger Causality*", caption = "*Only considers weeks with COVID deaths") +
+            labs(y = "Granger p-value", title = "Top 20 Granger Causality*", caption = "*Only considers weeks with COVID deaths") +
             theme(axis.title.y = element_blank(), legend.position = "none") +
             scale_fill_gradient2(mid = "grey", high = "brown") +
             scale_y_continuous(expand = c(0,0)) +
@@ -363,16 +363,12 @@ server <- function(input, output, session) {
         req(input$cdc_years, input$regions)
         data <- cod_statecauses %>% filter(Year == input$cdc_years)
         data <- data %>% filter(region == input$regions) %>% mutate(NormalizedPopulation = ValuePop/100000)
-        barColourCount = length(unique(cod_statecauses$Measure))
-        getPalette = colorRampPalette(brewer.pal(12, "Paired"))
-        
-        
+
         ggplot(data = data,  aes(x=Cause, y = NormalizedPopulation, fill=Measure)) +
             geom_bar(stat="identity") +
             facet_wrap(~Year + region, ncol=length(input$regions)) +
-            scale_fill_manual(values = getPalette(barColourCount)) +
+            scale_fill_manual(values = cod_palette) +
             theme(axis.text.x=element_text(angle=90,hjust=1,vjust=.5))
-        
     })
 }
 
