@@ -11,13 +11,14 @@ library(ggthemes)
 
 select <- dplyr::select
 
+#Get most current data from CDC
 deaths2018 <- read_csv("https://data.cdc.gov/api/views/3yf8-kanr/rows.csv?accessType=DOWNLOAD")
 deaths2020 <- read_csv("https://data.cdc.gov/api/views/muzy-jte6/rows.csv?accessType=DOWNLOAD")
 
 
 dim(deaths2018)
 dim(deaths2020)
-
+#clean up column names for ease of use and readability, remove unneeded columns & rows
 deaths_tidy2018 <- deaths2018 %>%
   rename(
     state = "Jurisdiction of Occurrence",
@@ -67,13 +68,19 @@ deaths_tidy2020 <- deaths2020 %>%
   select(-starts_with("flag_")) %>%
   filter(state != "United States")
 
+#add datasets together
 deaths_tidy <- deaths_tidy2018 %>%
   bind_rows(deaths_tidy2020)
 
+#create a df that is long form
 deaths_tidy_long <- deaths_tidy %>%
   pivot_longer(all_causes:covid, names_to = "measure", values_to = "value")
+#Note: we will this set later as the base for another dataset 
 
+#For the most accurate data, we remove the last 6 weeks. This allows for places that report monthly
+#and the additional 7+ days it takes to properly report COVID-19 deaths and an extra week for buffer
 max_reliable_date <- max(deaths_tidy$week_end) - weeks(6)
+
 
 cod_measures <- deaths_tidy %>% 
   filter(week_end <= max_reliable_date) %>%
@@ -228,7 +235,7 @@ updateNYFull <- updateNYFull[, c(6,3,4,1,2,5)]
 StateCausesFull <- StateCausesFull %>% filter(!(state %in% c('New York','New York City')))
 StateCausesFull <- StateCausesFull %>% bind_rows(updateNYFull) 
 
-#Clean up the data all years
+#We need to have DC renamed so it will match with other data sets
 StateCausesFull$state <- gsub("District of Columbia", "Washington DC", StateCausesFull$state, fixed=TRUE)
 
 
@@ -242,7 +249,7 @@ StatesDF <- StatesDF  %>% add_row(state="Puerto Rico", abb="PR")
 #combine the datasets so we have regional data with our main dataset
 StateCausesFull <- merge(StateCausesFull, StatesDF, by="state", fixed=TRUE)
 
-#Need to create format to match backwards compatibility
+#Need to create format to match backwards compatibility of code that is used in other files
 StateCausesFull <- StateCausesFull %>% 
   mutate(LongCause = case_when(
     measure == "alzheimer" ~ "AlzheimerDisease",
@@ -263,7 +270,7 @@ StateCausesFull <- StateCausesFull %>%
 #some of our graphs will do better with names of shorter length
 StateCausesFull <- StateCausesFull %>% 
   mutate(Cause = case_when(
-    LongCause == "AlzheimerDisease" ~ "Alzhiem",
+    LongCause == "AlzheimerDisease" ~ "Alzheim",
     LongCause == "Cancer" ~"Cancer",
     LongCause == "Cerebrovascular" ~ "Cerebro",
     LongCause == "Covid" ~ "Covid",
@@ -303,7 +310,7 @@ StateCausesFullPop <- StateCausesFullPop %>%
 #We need to create the column upstate separately so we don't break things downstream for code already submitted
 StateCausesFullPop <- StateCausesFullPop %>% mutate(upstate = state)
 
-#reordering JIC for downstream code. Don't think there is dependancy, but putting here for safety
+#reordering JIC for downstream code. Don't think there is dependency, but putting here for safety
 StateCausesFullPop <- StateCausesFullPop[, c(1,2,3,4,9,5,6,7,8,10,15,11,12,13,14)]
 
 write_rds(cod_statecauses, "statecausesfullpop.rds")
